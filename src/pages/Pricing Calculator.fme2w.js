@@ -1,29 +1,65 @@
 import wixWindow from 'wix-window';
 
 $w.onReady(function () {
-    // Initialize user input elements
+    // user input elements
     const homeValueInput = $w('#homeValueInput');
     const yearlyIncomeInput = $w('#yearlyIncomeInput');
     const projectTypeDropdown = $w('#projectTypeDropdown');
     const calculateButton = $w('#calculateButton');
+
+    // results elements
     const resultsContainer = $w('#resultsContainer');
     const resultsContainer2 = $w('#resultsContainer2');
     const resetButton = $w('#resetButton');
     const applicationLink = $w('#applicationLink');
 
-    // Hide results and disable reset button initially
+    // hide results and disable reset button initially
     resultsContainer.hide();
     resultsContainer2.hide();
     resetButton.disable();
     applicationLink.hide();
 
+    // config constants
+    const CONFIG = {
+        LIMITS: {
+            MIN_HOME_VALUE: 50000,
+            MAX_HOME_VALUE: 10000000,
+            MIN_YEARLY_INCOME: 8000,
+            MAX_YEARLY_INCOME: 10000000
+        },
+        RATES: {
+            CONTINGENCY: {
+                low: 0.1,
+                middle: 0.15,
+                high: 0.25
+            },
+            MONTHLY_SAVINGS: {
+                low: 0.2,
+                middle: 0.25,
+                high: 0.3
+            }
+        }
+    };
+
     calculateButton.onClick(() => {
         try {
+            // input sanitization
+            homeValueInput.value = homeValueInput.value.replace(/[^0-9.]/g, '');
+            yearlyIncomeInput.value = yearlyIncomeInput.value.replace(/[^0-9.]/g, '');
+
             const homeValue = Number(homeValueInput.value);
             const yearlyIncome = Number(yearlyIncomeInput.value);
             const projectType = projectTypeDropdown.value;
 
-            // Add input validation with minimum values
+            // maximum value validation
+            if (homeValue > 10000000 || yearlyIncome > 10000000) {
+                wixWindow.openLightbox("ErrorMessage", {
+                    message: "Please enter reasonable values (less than $10 million)"
+                });
+                return;
+            }
+
+            // minimum value validation
             if (!homeValue || !yearlyIncome || projectType === 'select' || 
                 homeValue < 50000 || yearlyIncome < 8000) {
                 wixWindow.openLightbox("ErrorMessage", {
@@ -34,7 +70,7 @@ $w.onReady(function () {
 
             console.log('Input values:', { homeValue, yearlyIncome, projectType });
 
-            // Calculate for each tier
+            // calculate for each tier
             const results = {
                 low: calculateTier(homeValue, yearlyIncome, projectType, 'low'),
                 middle: calculateTier(homeValue, yearlyIncome, projectType, 'middle'),
@@ -43,8 +79,8 @@ $w.onReady(function () {
 
             console.log('Calculation results:', results);
 
-            // Update display
             updateDisplay(results);
+
             resultsContainer.show();
             resultsContainer2.show();
             resetButton.enable();
@@ -64,43 +100,43 @@ $w.onReady(function () {
         const coefficient = getProjectCoefficient(projectType, tier);
         console.log(`Project coefficient for ${tier}: ${coefficient}`);
         
-        // Initial Budget (C9 * C3)
+        // initial budget (C9 * C3)
         const initialBudget = homeValue * coefficient;
         
-        // As you can see, the contingency rates match the sheet
+        // contingency rates match the sheet
         const contingencyRates = {
             low: 0.1,      // C10
             middle: 0.15, // D10
             high: 0.25   // E10
         };
         
-        // Monthly savings rates match the sheet
+        // monthly savings rates match the sheet
         const monthlySavingRates = {
             low: 0.2,      // C12
             middle: 0.25, // D12
             high: 0.3    // E12
         };
 
-        // Calculate contingency fund (initialBudget * contingencyRate)
+        // contingency fund (initialBudget * contingencyRate)
         const contingencyFund = initialBudget * contingencyRates[tier];
         
-        // Calculate monthly savings (yearlyIncome / 12 * monthlySavingRate)
+        // monthly savings (yearlyIncome / 12 * monthlySavingRate)
         const monthlyIncome = yearlyIncome / 12;
         const monthlySavings = monthlyIncome * monthlySavingRates[tier];
         
-        // Total budget (initialBudget + contingencyFund)
+        // total budget (initialBudget + contingencyFund)
         const totalBudget = initialBudget + contingencyFund;
         
-        // Time to save (totalBudget / monthlySavings)
+        // time to save (totalBudget / monthlySavings)
         const timeToSave = totalBudget / monthlySavings;
         
-        // Get ROI coefficient from the sheet's lookup tables
+        // roi coefficient from the sheet's lookup tables
         const roiCoefficient = getROICoefficient(projectType, tier);
         
-        // Calculate value increase (totalBudget * roiCoefficient)
+        // value increase (totalBudget * roiCoefficient)
         const valueIncrease = totalBudget * roiCoefficient;
         
-        // Updated home value (homeValue + valueIncrease)
+        // home value (homeValue + valueIncrease)
         const updatedHomeValue = homeValue + valueIncrease;
 
         const result = {
@@ -108,7 +144,7 @@ $w.onReady(function () {
             contingencyFund,
             timeToSave,
             monthlySavings,
-            roi: roiCoefficient * 100,
+            roi: roiCoefficient * 100, // they want roi as a percentage
             totalBudget,
             valueIncrease,
             updatedHomeValue,
@@ -168,6 +204,14 @@ $w.onReady(function () {
             }
 
         };
+
+        // input validation
+        if (!coefficients[tier] || !coefficients[tier][projectType]) {
+            console.error(`Invalid tier or project type: ${tier}, ${projectType}`);
+            throw new Error('Invalid project configuration');
+        }
+
+
         return coefficients[tier][projectType];
     }
 
@@ -203,79 +247,89 @@ $w.onReady(function () {
                 "ADU": 1.05, 
                 "Landscaping": 0.85, 
                 "Solar Panel Installation": 0.85
-        },
-        middle: {
-            "Kitchen": 1.05, 
-            "Minor Remodel": 0.9, 
-            "Major Remodel": 0.8, 
-            "Bathroom": 0.9, 
-            "Midrange Remodel": 0.85, 
-            "Upscale Remodel": 0.8, 
-            "Roof Replacement": 0.83, 
-            "Asphalt Shingles": 0.65, 
-            "Metal Roof": 0.75, 
-            "Window Replacement": 0.85, 
-            "Vinyl Windows": 0.8, 
-            "Wood Windows": 0.75, 
-            "Garage Door Replacement": 1.1, 
-            "Deck Addition": 0.87, 
-            "Wood Deck": 0.8, 
-            "Composite Deck": 0.7, 
-            "Attic Insulation": 0.92, 
-            "Entry Door Replacement": 0.9, 
-            "Steel": 0.9, 
-            "Siding Replacement": 0.9, 
-            "Vinyl Siding": 0.8, 
-            "Fiber Cement Siding": 0.85, 
-            "Room Addition": 0.75, 
-            "Family Room Addition": 0.65, 
-            "Master Suite Addition": 0.6, 
-            "Accessory Dwelling Unit": 1.5, 
-            "ADU": 1.05, 
-            "Landscaping": 1, 
-            "Solar Panel Installation": 1
-        },
-        high: {
-            "Kitchen": 1.2, 
-            "Minor Remodel": 0.9, 
-            "Major Remodel": 0.8, 
-            "Bathroom": 1, 
-            "Midrange Remodel": 0.85, 
-            "Upscale Remodel": 0.8, 
-            "Roof Replacement": 0.9, 
-            "Asphalt Shingles": 0.65, 
-            "Metal Roof": 0.75, 
-            "Window Replacement": 0.95, 
-            "Vinyl Windows": 0.8, 
-            "Wood Windows": 0.75, 
-            "Garage Door Replacement": 1.2, 
-            "Deck Addition": 0.9, 
-            "Wood Deck": 0.8, 
-            "Composite Deck": 0.7, 
-            "Attic Insulation": 1, 
-            "Entry Door Replacement": 0.9, 
-            "Steel": 0.9, 
-            "Siding Replacement": 1, 
-            "Vinyl Siding": 0.8, 
-            "Fiber Cement Siding": 0.85, 
-            "Room Addition": 0.85, 
-            "Family Room Addition": 0.65, 
-            "Master Suite Addition": 0.6, 
-            "Accessory Dwelling Unit": 2.5, 
-            "ADU": 1.05, 
-            "Landscaping": 1.1, 
-            "Solar Panel Installation": 1.1
+            },
+            middle: {
+                "Kitchen": 1.05, 
+                "Minor Remodel": 0.9, 
+                "Major Remodel": 0.8, 
+                "Bathroom": 0.9, 
+                "Midrange Remodel": 0.85, 
+                "Upscale Remodel": 0.8, 
+                "Roof Replacement": 0.83, 
+                "Asphalt Shingles": 0.65, 
+                "Metal Roof": 0.75, 
+                "Window Replacement": 0.85, 
+                "Vinyl Windows": 0.8, 
+                "Wood Windows": 0.75, 
+                "Garage Door Replacement": 1.1, 
+                "Deck Addition": 0.87, 
+                "Wood Deck": 0.8, 
+                "Composite Deck": 0.7, 
+                "Attic Insulation": 0.92, 
+                "Entry Door Replacement": 0.9, 
+                "Steel": 0.9, 
+                "Siding Replacement": 0.9, 
+                "Vinyl Siding": 0.8, 
+                "Fiber Cement Siding": 0.85, 
+                "Room Addition": 0.75, 
+                "Family Room Addition": 0.65, 
+                "Master Suite Addition": 0.6, 
+                "Accessory Dwelling Unit": 1.5, 
+                "ADU": 1.05, 
+                "Landscaping": 1, 
+                "Solar Panel Installation": 1
+            },
+            high: {
+                "Kitchen": 1.2, 
+                "Minor Remodel": 0.9, 
+                "Major Remodel": 0.8, 
+                "Bathroom": 1, 
+                "Midrange Remodel": 0.85, 
+                "Upscale Remodel": 0.8, 
+                "Roof Replacement": 0.9, 
+                "Asphalt Shingles": 0.65, 
+                "Metal Roof": 0.75, 
+                "Window Replacement": 0.95, 
+                "Vinyl Windows": 0.8, 
+                "Wood Windows": 0.75, 
+                "Garage Door Replacement": 1.2, 
+                "Deck Addition": 0.9, 
+                "Wood Deck": 0.8, 
+                "Composite Deck": 0.7, 
+                "Attic Insulation": 1, 
+                "Entry Door Replacement": 0.9, 
+                "Steel": 0.9, 
+                "Siding Replacement": 1, 
+                "Vinyl Siding": 0.8, 
+                "Fiber Cement Siding": 0.85, 
+                "Room Addition": 0.85, 
+                "Family Room Addition": 0.65, 
+                "Master Suite Addition": 0.6, 
+                "Accessory Dwelling Unit": 2.5, 
+                "ADU": 1.05, 
+                "Landscaping": 1.1, 
+                "Solar Panel Installation": 1.1
+            }
+        };
+
+        // input validation
+        if (!coefficients[tier] || !coefficients[tier][projectType]) {
+            console.error(`Invalid tier or project type: ${tier}, ${projectType}`);
+            throw new Error('Invalid project configuration');
         }
 
-        };
         return coefficients[tier][projectType];
     }
 
     function updateDisplay(results) {
+        if (!results || typeof results !== 'object') {
+            console.error('Invalid results object:', results);
+            return;
+        }
         console.log('Updating display with results:', { results });
         
-        // Update each text element with the calculated values
         // this method is only correct when there are 24 updated text elements (the size of results)
+        // this is the hack way of updating the text elements on the page lol
         Object.keys(results).forEach(tier => {
             const r = results[tier];
             // tier strings start in lowercase, as low, middle or high + InitialBudget, ContingencyFund, TimeToSave, MonthlySavings, ROI, TotalBudget, ValueIncrease, UpdatedHomeValue
@@ -291,6 +345,7 @@ $w.onReady(function () {
         });
     }
 
+    // W javascript
     function formatCurrency(value) {
         return new Intl.NumberFormat('en-US', { 
             style: 'currency', 
@@ -306,12 +361,12 @@ $w.onReady(function () {
 
     // Reset button handler
     resetButton.onClick(() => {
-        // Clear input fields
+        // clear input fields
         homeValueInput.value = '';
         yearlyIncomeInput.value = '';
         projectTypeDropdown.value = 'select';
 
-        // Clear all result text elements
+        // clear all result text elements
         const tiers = ['low', 'middle', 'high'];
         const fields = ['InitialBudget', 'ContingencyFund', 'TimeToSave', 'MonthlySavings', 
                        'ROI', 'TotalBudget', 'ValueIncrease', 'UpdatedHomeValue', 'projectType'];
@@ -322,7 +377,7 @@ $w.onReady(function () {
             });
         });
 
-        // Hide containers and disable reset button!
+        // hide containers and disable reset button!
         resultsContainer.hide();
         resultsContainer2.hide();
         resetButton.disable();
