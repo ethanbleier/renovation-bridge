@@ -8,25 +8,31 @@ $w.onReady(function () {
     const calculateButton = $w('#calculateButton');
     const resultsContainer = $w('#resultsContainer');
     const resultsContainer2 = $w('#resultsContainer2');
+    const resetButton = $w('#resetButton');
+    const applicationLink = $w('#applicationLink');
 
-    // Hide results initially
+    // Hide results and disable reset button initially
     resultsContainer.hide();
     resultsContainer2.hide();
+    resetButton.disable();
+    applicationLink.hide();
+
     calculateButton.onClick(() => {
         try {
             const homeValue = Number(homeValueInput.value);
             const yearlyIncome = Number(yearlyIncomeInput.value);
             const projectType = projectTypeDropdown.value;
 
-            console.log('Input values:', { homeValue, yearlyIncome, projectType });
-
-            // Validate inputs
-            if (!homeValue || !yearlyIncome || projectType === 'select') {
+            // Add input validation with minimum values
+            if (!homeValue || !yearlyIncome || projectType === 'select' || 
+                homeValue < 50000 || yearlyIncome < 8000) {
                 wixWindow.openLightbox("ErrorMessage", {
-                    message: "Please enter valid values for all fields"
+                    message: "Please check your inputs:\n• Home value must be at least $50,000\n• Yearly income must be at least $8,000\n• Project type must be selected"
                 });
                 return;
             }
+
+            console.log('Input values:', { homeValue, yearlyIncome, projectType });
 
             // Calculate for each tier
             const results = {
@@ -41,6 +47,8 @@ $w.onReady(function () {
             updateDisplay(results);
             resultsContainer.show();
             resultsContainer2.show();
+            resetButton.enable();
+            applicationLink.show();
         } catch (error) {
             console.error('Calculation error:', error);
             wixWindow.openLightbox("ErrorMessage", {
@@ -89,8 +97,8 @@ $w.onReady(function () {
         // Get ROI coefficient from the sheet's lookup tables
         const roiCoefficient = getROICoefficient(projectType, tier);
         
-        // Calculate value increase (totalBudget * (roiCoefficient - 1))
-        const valueIncrease = totalBudget * (roiCoefficient - 1);
+        // Calculate value increase (totalBudget * roiCoefficient)
+        const valueIncrease = totalBudget * roiCoefficient;
         
         // Updated home value (homeValue + valueIncrease)
         const updatedHomeValue = homeValue + valueIncrease;
@@ -293,11 +301,11 @@ $w.onReady(function () {
     }
 
     function formatDecimal(value) {
-        return value.toFixed(2);
+        return Math.round(value) + " months";
     }
 
     // Reset button handler
-    $w('#resetButton').onClick(() => {
+    resetButton.onClick(() => {
         // Clear input fields
         homeValueInput.value = '';
         yearlyIncomeInput.value = '';
@@ -314,9 +322,10 @@ $w.onReady(function () {
             });
         });
 
-
-        // Hide containers!
+        // Hide containers and disable reset button!
         resultsContainer.hide();
         resultsContainer2.hide();
+        resetButton.disable();
+        applicationLink.hide();
     });
 });
