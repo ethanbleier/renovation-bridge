@@ -1,21 +1,24 @@
 import wixWindow from 'wix-window';
 
 $w.onReady(function () {
-    // Initialize elements
+    // Initialize user input elements
     const homeValueInput = $w('#homeValueInput');
     const yearlyIncomeInput = $w('#yearlyIncomeInput');
     const projectTypeDropdown = $w('#projectTypeDropdown');
     const calculateButton = $w('#calculateButton');
     const resultsContainer = $w('#resultsContainer');
+    const resultsContainer2 = $w('#resultsContainer2');
 
     // Hide results initially
     resultsContainer.hide();
-
+    resultsContainer2.hide();
     calculateButton.onClick(() => {
         try {
             const homeValue = Number(homeValueInput.value);
             const yearlyIncome = Number(yearlyIncomeInput.value);
             const projectType = projectTypeDropdown.value;
+
+            console.log('Input values:', { homeValue, yearlyIncome, projectType });
 
             // Validate inputs
             if (!homeValue || !yearlyIncome || projectType === 'select') {
@@ -32,10 +35,12 @@ $w.onReady(function () {
                 high: calculateTier(homeValue, yearlyIncome, projectType, 'high')
             };
 
+            console.log('Calculation results:', results);
+
             // Update display
             updateDisplay(results);
             resultsContainer.show();
-
+            resultsContainer2.show();
         } catch (error) {
             console.error('Calculation error:', error);
             wixWindow.openLightbox("ErrorMessage", {
@@ -45,46 +50,65 @@ $w.onReady(function () {
     });
 
     function calculateTier(homeValue, yearlyIncome, projectType, tier) {
-        const rates = {
-            low: { contingency: 0.1, monthly: 0.2 },
-            middle: { contingency: 0.15, monthly: 0.25 },
-            high: { contingency: 0.25, monthly: 0.3 }
-        };
-
-        // Get project coefficient
-        const coefficient = getProjectCoefficient(projectType, tier);
+        console.log(`Calculating ${tier} tier for ${projectType}`);
         
-        // Initial budget calculation
+        // Project coefficient (this is the C9 formula in the sheet)
+        const coefficient = getProjectCoefficient(projectType, tier);
+        console.log(`Project coefficient for ${tier}: ${coefficient}`);
+        
+        // Initial Budget (C9 * C3)
         const initialBudget = homeValue * coefficient;
         
-        // Contingency fund
-        const contingencyFund = initialBudget * rates[tier].contingency;
+        // Contingency rates now match the sheet
+        const contingencyRates = {
+            low: 0.1,    // C10
+            middle: 0.15, // D10
+            high: 0.25   // E10
+        };
         
-        // Monthly savings
+        // Monthly savings rates match the sheet
+        const monthlySavingRates = {
+            low: 0.2,    // C12
+            middle: 0.25, // D12
+            high: 0.3    // E12
+        };
+
+        // Calculate contingency fund (initialBudget * contingencyRate)
+        const contingencyFund = initialBudget * contingencyRates[tier];
+        
+        // Calculate monthly savings (yearlyIncome / 12 * monthlySavingRate)
         const monthlyIncome = yearlyIncome / 12;
-        const monthlySavings = monthlyIncome * rates[tier].monthly;
+        const monthlySavings = monthlyIncome * monthlySavingRates[tier];
         
-        // Total budget
+        // Total budget (initialBudget + contingencyFund)
         const totalBudget = initialBudget + contingencyFund;
         
-        // Time to save
+        // Time to save (totalBudget / monthlySavings)
         const timeToSave = totalBudget / monthlySavings;
         
-        // ROI and value calculations
+        // Get ROI coefficient from the sheet's lookup tables
         const roiCoefficient = getROICoefficient(projectType, tier);
-        const valueIncrease = totalBudget * roiCoefficient;
-        const updatedHomeValue = homeValue + valueIncrease;
         
-        return {
+        // Calculate value increase (totalBudget * (roiCoefficient - 1))
+        const valueIncrease = totalBudget * (roiCoefficient - 1);
+        
+        // Updated home value (homeValue + valueIncrease)
+        const updatedHomeValue = homeValue + valueIncrease;
+
+        const result = {
             initialBudget,
             contingencyFund,
             timeToSave,
             monthlySavings,
-            roi: (roiCoefficient - 1) * 100,
+            roi: roiCoefficient * 100,
             totalBudget,
             valueIncrease,
-            updatedHomeValue
+            updatedHomeValue,
+            projectType
         };
+        
+        console.log(`${tier} tier calculations:`, result);
+        return result;
     }
 
     function getProjectCoefficient(projectType, tier) {
@@ -240,9 +264,13 @@ $w.onReady(function () {
     }
 
     function updateDisplay(results) {
+        console.log('Updating display with results:', { results });
+        
         // Update each text element with the calculated values
+        // this method is only correct when there are 24 updated text elements (the size of results)
         Object.keys(results).forEach(tier => {
             const r = results[tier];
+            // tier strings start in lowercase, as low, middle or high + InitialBudget, ContingencyFund, TimeToSave, MonthlySavings, ROI, TotalBudget, ValueIncrease, UpdatedHomeValue
             $w(`#${tier}InitialBudget`).text = formatCurrency(r.initialBudget);
             $w(`#${tier}ContingencyFund`).text = formatCurrency(r.contingencyFund);
             $w(`#${tier}TimeToSave`).text = formatDecimal(r.timeToSave);
@@ -251,6 +279,7 @@ $w.onReady(function () {
             $w(`#${tier}TotalBudget`).text = formatCurrency(r.totalBudget);
             $w(`#${tier}ValueIncrease`).text = formatCurrency(r.valueIncrease);
             $w(`#${tier}UpdatedHomeValue`).text = formatCurrency(r.updatedHomeValue);
+            $w(`#projectType`).text = r.projectType;
         });
     }
 
@@ -266,4 +295,28 @@ $w.onReady(function () {
     function formatDecimal(value) {
         return value.toFixed(2);
     }
+
+    // Reset button handler
+    $w('#resetButton').onClick(() => {
+        // Clear input fields
+        homeValueInput.value = '';
+        yearlyIncomeInput.value = '';
+        projectTypeDropdown.value = 'select';
+
+        // Clear all result text elements
+        const tiers = ['low', 'middle', 'high'];
+        const fields = ['InitialBudget', 'ContingencyFund', 'TimeToSave', 'MonthlySavings', 
+                       'ROI', 'TotalBudget', 'ValueIncrease', 'UpdatedHomeValue', 'projectType'];
+
+        tiers.forEach(tier => {
+            fields.forEach(field => {
+                $w(`#${tier}${field}`).text = '';
+            });
+        });
+
+
+        // Hide containers!
+        resultsContainer.hide();
+        resultsContainer2.hide();
+    });
 });
