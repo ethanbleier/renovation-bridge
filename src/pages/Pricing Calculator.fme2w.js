@@ -59,16 +59,16 @@ $w.onReady(function () {
         // Initial Budget (C9 * C3)
         const initialBudget = homeValue * coefficient;
         
-        // Contingency rates now match the sheet
+        // As you can see, the contingency rates match the sheet
         const contingencyRates = {
-            low: 0.1,    // C10
+            low: 0.1,      // C10
             middle: 0.15, // D10
             high: 0.25   // E10
         };
         
         // Monthly savings rates match the sheet
         const monthlySavingRates = {
-            low: 0.2,    // C12
+            low: 0.2,      // C12
             middle: 0.25, // D12
             high: 0.3    // E12
         };
