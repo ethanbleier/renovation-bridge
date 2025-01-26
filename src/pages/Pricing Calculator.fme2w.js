@@ -329,10 +329,11 @@ $w.onReady(function () {
         console.log('Updating display with results:', { results });
         
         // this method is only correct when there are 24 updated text elements (the size of results)
-        // this is the hack way of updating the text elements on the page lol
+        // There are 8 variables per tier, and 3 tiers, so we are updating 24 text elements
+        // This doesn't seem the best way to do it but it works for now
         Object.keys(results).forEach(tier => {
             const r = results[tier];
-            // tier strings start in lowercase, as low, middle or high + InitialBudget, ContingencyFund, TimeToSave, MonthlySavings, ROI, TotalBudget, ValueIncrease, UpdatedHomeValue
+            // tier strings start in lowercase, as low, middle or high + variable name
             $w(`#${tier}InitialBudget`).text = formatCurrency(r.initialBudget);
             $w(`#${tier}ContingencyFund`).text = formatCurrency(r.contingencyFund);
             $w(`#${tier}TimeToSave`).text = formatDecimal(r.timeToSave);
