@@ -10,14 +10,14 @@ $w.onReady(function () {
     const resultsContainer = $w('#resultsContainer');
     const resultsContainer2 = $w('#resultsContainer2');
     const resetButton = $w('#resetButton');
-    const applicationLink = $w('#applicationLink');
+    // const applicationLink = $w('#applicationLink');
 
     // Hide results and disable reset button initially
     resultsContainer.hide();
     resultsContainer2.hide();
     resetButton.disable();
     // calculateButton.disable();
-    applicationLink.hide();
+    // applicationLink.hide();
 
 
     calculateButton.onClick(() => {
