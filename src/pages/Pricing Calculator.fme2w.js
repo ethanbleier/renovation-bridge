@@ -1,4 +1,5 @@
 import wixWindow from 'wix-window';
+import wixWindowFrontend from "wix-window-frontend";
 
 $w.onReady(function () {
     // Initialize user input elements
@@ -10,14 +11,13 @@ $w.onReady(function () {
     const resultsContainer = $w('#resultsContainer');
     const resultsContainer2 = $w('#resultsContainer2');
     const resetButton = $w('#resetButton');
-    // const applicationLink = $w('#applicationLink');
 
     // Hide results and disable reset button initially
     resultsContainer.hide();
     resultsContainer2.hide();
     resetButton.disable();
     // calculateButton.disable();
-    // applicationLink.hide();
+
 
 
     calculateButton.onClick(() => {
@@ -55,12 +55,15 @@ $w.onReady(function () {
 
             console.log('Calculation results:', results);
 
-            // Update display
-            updateDisplay(results);
-            resultsContainer.show();
-            resultsContainer2.show();
-            resetButton.enable();
-            applicationLink.show();
+            if (wixWindowFrontend.formFactor === "Mobile" || wixWindowFrontend.formFactor === "Tablet") {
+                resultsContainer2.show();
+                resetButton.enable();
+            } else {
+                updateDisplay(results);
+                resultsContainer.show();
+                resultsContainer2.show();
+                resetButton.enable();
+            }
         } catch (error) {
             console.error('Calculation error:', error);
             wixWindow.openLightbox("ErrorMessage", {
