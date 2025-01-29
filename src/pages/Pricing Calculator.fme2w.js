@@ -16,8 +16,10 @@ $w.onReady(function () {
     // hide results and disable reset button initially
     resultsContainer.hide();
     resultsContainer2.hide();
-    resetButton.disable();
+
     applicationLink.hide();
+    resetButton.disable();
+    calculateButton.disable();
 
     // config constants
     const CONFIG = {
@@ -41,34 +43,73 @@ $w.onReady(function () {
         }
     };
 
+    const VALID_PROJECT_TYPES = [
+        "Bathroom",
+        "Kitchen",
+        "Roof Replacement",
+        "Window Replacement",
+        "Garage Door Replacement",
+        "Deck Addition",
+        "Attic Insulation",
+        "Siding Replacement",
+        "Room Addition",
+        "Accessory Dwelling Unit",
+        "ADU",
+        "Landscaping",
+        "Solar Panel Installation"
+    ];
+
+    // Add input validation listeners
+    homeValueInput.onInput(() => validateInputs());
+    yearlyIncomeInput.onInput(() => validateInputs());
+    projectTypeDropdown.onChange(() => validateInputs());
+
+    function validateInputs() {
+        const homeValue = Number(homeValueInput.value.replace(/[^0-9.]/g, ''));
+        const yearlyIncome = Number(yearlyIncomeInput.value.replace(/[^0-9.]/g, ''));
+        const projectType = projectTypeDropdown.value;
+
+        const isValid = homeValue >= CONFIG.LIMITS.MIN_HOME_VALUE && 
+                       homeValue <= CONFIG.LIMITS.MAX_HOME_VALUE &&
+                       yearlyIncome >= CONFIG.LIMITS.MIN_YEARLY_INCOME &&
+                       yearlyIncome <= CONFIG.LIMITS.MAX_YEARLY_INCOME &&
+                       VALID_PROJECT_TYPES.includes(projectType);
+
+        if (!isValid) {
+            let errorMessage = "Please check your inputs:";
+            if (homeValue < CONFIG.LIMITS.MIN_HOME_VALUE) errorMessage += "\n• Home value must be at least $50,000";
+            if (yearlyIncome < CONFIG.LIMITS.MIN_YEARLY_INCOME) errorMessage += "\n• Yearly income must be at least $8,000";
+            if (!VALID_PROJECT_TYPES.includes(projectType)) errorMessage += "\n• Please select a valid project type";
+            if (homeValue > CONFIG.LIMITS.MAX_HOME_VALUE || yearlyIncome > CONFIG.LIMITS.MAX_HOME_VALUE) {
+                errorMessage = "Please enter reasonable values (less than $10 million)";
+            }
+            return { isValid, errorMessage };
+        }
+
+        return { isValid, errorMessage: null };
+    }
+
     calculateButton.onClick(() => {
         try {
             // input sanitization
             homeValueInput.value = homeValueInput.value.replace(/[^0-9.]/g, '');
             yearlyIncomeInput.value = yearlyIncomeInput.value.replace(/[^0-9.]/g, '');
 
+            const { isValid, errorMessage } = validateInputs();
+            if (!isValid) {
+                wixWindow.openLightbox("ErrorMessage", { message: errorMessage });
+                return;
+            }
+
             const homeValue = Number(homeValueInput.value);
             const yearlyIncome = Number(yearlyIncomeInput.value);
             const projectType = projectTypeDropdown.value;
 
-            // maximum value validation
-            if (homeValue > 10000000 || yearlyIncome > 10000000) {
-                wixWindow.openLightbox("ErrorMessage", {
-                    message: "Please enter reasonable values (less than $10 million)"
-                });
-                return;
-            }
-
-            // minimum value validation
-            if (!homeValue || !yearlyIncome || projectType === 'select' || 
-                homeValue < 50000 || yearlyIncome < 8000) {
-                wixWindow.openLightbox("ErrorMessage", {
-                    message: "Please check your inputs:\n• Home value must be at least $50,000\n• Yearly income must be at least $8,000\n• Project type must be selected"
-                });
-                return;
-            }
-
-            console.log('Input values:', { homeValue, yearlyIncome, projectType });
+            console.log('User input:', {
+                'Home Value': `$${homeValue.toLocaleString()}`,
+                'Yearly Income': `$${yearlyIncome.toLocaleString()}`,
+                'Project Type': projectType
+            });
 
             // calculate for each tier
             const results = {
@@ -77,13 +118,14 @@ $w.onReady(function () {
                 high: calculateTier(homeValue, yearlyIncome, projectType, 'high')
             };
 
-            console.log('Calculation results:', results);
+            console.log('Calculation results:', { results });
 
             updateDisplay(results);
 
             resultsContainer.show();
             resultsContainer2.show();
             resetButton.enable();
+            calculateButton.disable();
             applicationLink.show();
         } catch (error) {
             console.error('Calculation error:', error);
