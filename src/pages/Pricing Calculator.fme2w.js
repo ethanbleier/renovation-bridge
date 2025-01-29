@@ -16,7 +16,7 @@ $w.onReady(function () {
     resultsContainer.hide();
     resultsContainer2.hide();
     resetButton.disable();
-    calculateButton.disable();
+    // calculateButton.disable();
     applicationLink.hide();
 
 
