@@ -5,6 +5,7 @@ $w.onReady(function () {
     const homeValueInput = $w('#homeValueInput');
     const yearlyIncomeInput = $w('#yearlyIncomeInput');
     const projectTypeDropdown = $w('#projectTypeDropdown');
+    const projectTypeOptions = projectTypeDropdown.options;
     const calculateButton = $w('#calculateButton');
     const resultsContainer = $w('#resultsContainer');
     const resultsContainer2 = $w('#resultsContainer2');
@@ -15,13 +16,24 @@ $w.onReady(function () {
     resultsContainer.hide();
     resultsContainer2.hide();
     resetButton.disable();
+    calculateButton.disable();
     applicationLink.hide();
+
 
     calculateButton.onClick(() => {
         try {
             const homeValue = Number(homeValueInput.value);
             const yearlyIncome = Number(yearlyIncomeInput.value);
             const projectType = projectTypeDropdown.value;
+            console.log('Project type:', projectType);
+
+            // Validate project type against allowed options
+            if (!isValidProjectType(projectType)) {
+                wixWindow.openLightbox("ErrorMessage", {
+                    message: "Please select a valid project type"
+                });
+                return;
+            }
 
             // Add input validation with minimum values
             if (!homeValue || !yearlyIncome || projectType === 'select' || 
@@ -57,6 +69,7 @@ $w.onReady(function () {
         }
     });
 
+    
     function calculateTier(homeValue, yearlyIncome, projectType, tier) {
         console.log(`Calculating ${tier} tier for ${projectType}`);
         
@@ -175,104 +188,56 @@ $w.onReady(function () {
         const coefficients = {
             low: {
                 "Kitchen": 0.9, 
-                "Minor Remodel": 0.9, 
-                "Major Remodel": 0.8, 
                 "Bathroom": 0.8, 
-                "Midrange Remodel": 0.85, 
-                "Upscale Remodel": 0.8, 
                 "Roof Replacement": 0.75, 
-                "Asphalt Shingles": 0.65, 
-                "Metal Roof": 0.75, 
                 "Window Replacement": 0.8, 
-                "Vinyl Windows": 0.8, 
-                "Wood Windows": 0.75, 
                 "Garage Door Replacement": 0.95, 
                 "Deck Addition": 0.8, 
-                "Wood Deck": 0.8, 
-                "Composite Deck": 0.7, 
                 "Attic Insulation": 0.85, 
-                "Entry Door Replacement": 0.9, 
-                "Steel": 0.9, 
                 "Siding Replacement": 0.8, 
-                "Vinyl Siding": 0.8, 
-                "Fiber Cement Siding": 0.85, 
                 "Room Addition": 0.65, 
-                "Family Room Addition": 0.65, 
-                "Master Suite Addition": 0.6, 
                 "Accessory Dwelling Unit": 1.05, 
                 "ADU": 1.05, 
                 "Landscaping": 0.85, 
                 "Solar Panel Installation": 0.85
-        },
-        middle: {
-            "Kitchen": 1.05, 
-            "Minor Remodel": 0.9, 
-            "Major Remodel": 0.8, 
-            "Bathroom": 0.9, 
-            "Midrange Remodel": 0.85, 
-            "Upscale Remodel": 0.8, 
-            "Roof Replacement": 0.83, 
-            "Asphalt Shingles": 0.65, 
-            "Metal Roof": 0.75, 
-            "Window Replacement": 0.85, 
-            "Vinyl Windows": 0.8, 
-            "Wood Windows": 0.75, 
-            "Garage Door Replacement": 1.1, 
-            "Deck Addition": 0.87, 
-            "Wood Deck": 0.8, 
-            "Composite Deck": 0.7, 
-            "Attic Insulation": 0.92, 
-            "Entry Door Replacement": 0.9, 
-            "Steel": 0.9, 
-            "Siding Replacement": 0.9, 
-            "Vinyl Siding": 0.8, 
-            "Fiber Cement Siding": 0.85, 
-            "Room Addition": 0.75, 
-            "Family Room Addition": 0.65, 
-            "Master Suite Addition": 0.6, 
-            "Accessory Dwelling Unit": 1.5, 
-            "ADU": 1.05, 
-            "Landscaping": 1, 
-            "Solar Panel Installation": 1
-        },
-        high: {
-            "Kitchen": 1.2, 
-            "Minor Remodel": 0.9, 
-            "Major Remodel": 0.8, 
-            "Bathroom": 1, 
-            "Midrange Remodel": 0.85, 
-            "Upscale Remodel": 0.8, 
-            "Roof Replacement": 0.9, 
-            "Asphalt Shingles": 0.65, 
-            "Metal Roof": 0.75, 
-            "Window Replacement": 0.95, 
-            "Vinyl Windows": 0.8, 
-            "Wood Windows": 0.75, 
-            "Garage Door Replacement": 1.2, 
-            "Deck Addition": 0.9, 
-            "Wood Deck": 0.8, 
-            "Composite Deck": 0.7, 
-            "Attic Insulation": 1, 
-            "Entry Door Replacement": 0.9, 
-            "Steel": 0.9, 
-            "Siding Replacement": 1, 
-            "Vinyl Siding": 0.8, 
-            "Fiber Cement Siding": 0.85, 
-            "Room Addition": 0.85, 
-            "Family Room Addition": 0.65, 
-            "Master Suite Addition": 0.6, 
-            "Accessory Dwelling Unit": 2.5, 
-            "ADU": 1.05, 
-            "Landscaping": 1.1, 
-            "Solar Panel Installation": 1.1
-        }
-
+            },
+            middle: {
+                "Kitchen": 1.05, 
+                "Bathroom": 0.9, 
+                "Roof Replacement": 0.83, 
+                "Window Replacement": 0.85, 
+                "Garage Door Replacement": 1.1, 
+                "Deck Addition": 0.87, 
+                "Attic Insulation": 0.92, 
+                "Room Addition": 0.75, 
+                "Accessory Dwelling Unit": 1.05, 
+                "ADU": 1.05, 
+                "Landscaping": 0.85, 
+                "Solar Panel Installation": 0.85,
+                "Siding Replacement": 0.9, 
+            },
+            high: {
+                "Kitchen": 1.2, 
+                "Bathroom": 1, 
+                "Roof Replacement": 0.9, 
+                "Window Replacement": 0.95, 
+                "Garage Door Replacement": 1.2, 
+                "Deck Addition": 0.9, 
+                "Attic Insulation": 1, 
+                "Siding Replacement": 0.9, 
+                "Room Addition": 0.75, 
+                "Accessory Dwelling Unit": 1.05, 
+                "ADU": 1.05, 
+                "Landscaping": 0.85, 
+                "Solar Panel Installation": 0.85,
+            }
         };
         return coefficients[tier][projectType];
     }
 
     function updateDisplay(results) {
         console.log('Updating display with results:', { results });
+
         
         // Update each text element with the calculated values
         // this method is only correct when there are 24 updated text elements (the size of results)
@@ -328,4 +293,24 @@ $w.onReady(function () {
         resetButton.disable();
         applicationLink.hide();
     });
+
+    // Add this new helper function
+    function isValidProjectType(projectType) {
+        const validTypes = [
+            "Bathroom",
+            "Kitchen",
+            "Roof Replacement",
+            "Window Replacement",
+            "Garage Door Replacement",
+            "Deck Addition",
+            "Attic Insulation",
+            "Siding Replacement",
+            "Room Addition",
+            "Accessory Dwelling Unit",
+            "ADU",
+            "Landscaping",
+            "Solar Panel Installation"
+        ];
+        return validTypes.includes(projectType);
+    }
 });
