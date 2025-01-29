@@ -16,6 +16,7 @@ $w.onReady(function () {
     resultsContainer.hide();
     resultsContainer2.hide();
     resetButton.disable();
+
     // calculateButton.disable();
 
 
@@ -55,7 +56,9 @@ $w.onReady(function () {
 
             console.log('Calculation results:', results);
 
+            // Update this logic to properly handle mobile/tablet
             if (wixWindowFrontend.formFactor === "Mobile" || wixWindowFrontend.formFactor === "Tablet") {
+                updateDisplay(results);  // Add this line to ensure values are updated
                 resultsContainer2.show();
                 resetButton.enable();
             } else {
