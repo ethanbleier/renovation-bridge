@@ -13,7 +13,10 @@ $w.onReady(function () {
     const resetButton = $w('#resetButton');
 
     // Hide results and disable reset button initially
-    resultsContainer.hide();
+    if (wixWindowFrontend.formFactor !== "Mobile") {
+        resultsContainer.hide();
+    }
+    
     resultsContainer2.hide();
     resetButton.disable();
 
@@ -57,16 +60,16 @@ $w.onReady(function () {
             console.log('Calculation results:', results);
 
             // Update this logic to properly handle mobile/tablet
-            if (wixWindowFrontend.formFactor === "Mobile" || wixWindowFrontend.formFactor === "Tablet") {
+            if (wixWindowFrontend.formFactor === "Mobile") {
                 updateDisplay(results);  // Add this line to ensure values are updated
                 resultsContainer2.show();
-                resetButton.enable();
             } else {
                 updateDisplay(results);
                 resultsContainer.show();
                 resultsContainer2.show();
-                resetButton.enable();
             }
+
+            resetButton.enable();
         } catch (error) {
             console.error('Calculation error:', error);
             wixWindow.openLightbox("ErrorMessage", {
@@ -289,15 +292,22 @@ $w.onReady(function () {
 
         tiers.forEach(tier => {
             fields.forEach(field => {
-                $w(`#${tier}${field}`).text = '';
+                const element = $w(`#${tier}${field}`);
+                if (element) {
+                    element.text = '';
+                }
             });
         });
 
-        // Hide containers and disable reset button!
-        resultsContainer.hide();
-        resultsContainer2.hide();
+        // Hide containers based on form factor
+        if (wixWindowFrontend.formFactor === "Mobile") {
+            resultsContainer2.hide();
+        } else {
+            resultsContainer.hide();
+            resultsContainer2.hide();
+        }
+        
         resetButton.disable();
-        applicationLink.hide();
     });
 
     // Add this new helper function
